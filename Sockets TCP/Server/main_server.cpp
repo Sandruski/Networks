@@ -126,6 +126,13 @@ void server(int port)
 		return;
 	}
 
+	iResult = closesocket(connectedSocket);
+	if (iResult == SOCKET_ERROR)
+	{
+		printWSErrorAndExit("closesocket");
+		return;
+	}
+
 	// TODO-10: Winsock shutdown
 	iResult = WSACleanup();
 	if (iResult == SOCKET_ERROR)
