@@ -67,7 +67,7 @@ void client(const char *serverAddrStr, int port)
 		if (iResult == SOCKET_ERROR)
 		{
 			printWSErrorAndExit("sendto");
-			return;
+			break;
 		}
 
 		sockaddr_in fromAddr;
@@ -75,10 +75,12 @@ void client(const char *serverAddrStr, int port)
 		iResult = recvfrom(s, buf, bufSize, 0, (sockaddr*)&fromAddr, &fromSize);		if (iResult == SOCKET_ERROR)
 		{
 			printWSErrorAndExit("recvfrom");
-			return;
+			break;
 		}
 
 		std::cout << buf << std::endl;
+
+		Sleep(500);
 	}
 
 	// TODO-5: Close socket

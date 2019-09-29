@@ -46,18 +46,18 @@ void server(int port)
 	}
 
 	// TODO-3: Force address reuse
-	sockaddr_in localAddr;
-	localAddr.sin_family = AF_INET; // IPv4
-	localAddr.sin_port = htons(port); // Port
-	localAddr.sin_addr.S_un.S_addr = INADDR_ANY; // Any local IP address
 	int enable = 1;
-	iResult = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(int));	if (iResult == SOCKET_ERROR)
+	iResult = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(enable));	if (iResult == SOCKET_ERROR)
 	{
 		printWSErrorAndExit("setsockopt");
 		return;
 	}
 
 	// TODO-4: Bind to a local address
+	sockaddr_in localAddr;
+	localAddr.sin_family = AF_INET; // IPv4
+	localAddr.sin_port = htons(port); // Port
+	localAddr.sin_addr.S_un.S_addr = INADDR_ANY; // Any local IP address
 	iResult = bind(s, (sockaddr*)&localAddr, sizeof(localAddr));
 	if (iResult == SOCKET_ERROR)
 	{
@@ -78,7 +78,7 @@ void server(int port)
 		iResult = recvfrom(s, buf, bufSize, 0, (sockaddr*)&fromAddr, &fromSize);		if (iResult == SOCKET_ERROR)
 		{
 			printWSErrorAndExit("recvfrom");
-			return;
+			break;
 		}
 
 		std::cout << buf << std::endl;
@@ -89,7 +89,7 @@ void server(int port)
 		if (iResult == SOCKET_ERROR)
 		{
 			printWSErrorAndExit("sendto");
-			return;
+			break;
 		}
 	}
 
