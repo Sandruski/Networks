@@ -56,6 +56,8 @@ bool ModuleNetworkingServer::start(int port)
 		return false;
 	}
 
+	addSocket(listenSocket);
+
 	state = ServerState::Listening;
 
 	return true;
