@@ -1,7 +1,17 @@
 #include "ModuleNetworkingClient.h"
 
+void printWSErrorAndExit(const char* msg)
+{
+	wchar_t* s = NULL;
+	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, WSAGetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPWSTR)& s, 0, NULL);
+	fprintf(stderr, "%s: %S\n", msg, s);
+	LocalFree(s);
+}
 
-bool  ModuleNetworkingClient::start(const char * serverAddressStr, int serverPort, const char *pplayerName)
+bool  ModuleNetworkingClient::start(const char* serverAddressStr, int serverPort, const char *pplayerName)
 {
 	playerName = pplayerName;
 
@@ -10,6 +20,27 @@ bool  ModuleNetworkingClient::start(const char * serverAddressStr, int serverPor
 	// - Create the remote address object
 	// - Connect to the remote address
 	// - Add the created socket to the managed list of sockets using addSocket()
+	s = socket(AF_INET, SOCK_STREAM, 0);
+	if (s == INVALID_SOCKET)
+	{
+		printWSErrorAndExit("socket");
+		return false;
+	}
+
+	sockaddr_in toAddr;
+	toAddr.sin_family = AF_INET;
+	toAddr.sin_port = htons(serverPort);
+	const char* toAddrStr = serverAddressStr;
+	inet_pton(AF_INET, toAddrStr, &toAddr.sin_addr);
+
+	int iResult = connect(s, (sockaddr*)& toAddr, sizeof(toAddr));
+	if (iResult == SOCKET_ERROR)
+	{
+		printWSErrorAndExit("connect");
+		return false;
+	}
+
+	addSocket(s);
 
 	// If everything was ok... change the state
 	state = ClientState::Start;
@@ -27,6 +58,13 @@ bool ModuleNetworkingClient::update()
 	if (state == ClientState::Start)
 	{
 		// TODO(jesus): Send the player name to the server
+		if (send(s, playerName.data(), playerName.size(), 0) == SOCKET_ERROR)
+		{
+			printWSErrorAndExit("send");
+			return false;
+		}
+
+		state = ClientState::Logging;
 	}
 
 	return true;

@@ -1,7 +1,15 @@
 #include "ModuleNetworkingServer.h"
 
-
-
+void printWSErrorAndExit(const char* msg)
+{
+	wchar_t* s = NULL;
+	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, WSAGetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPWSTR)& s, 0, NULL);
+	fprintf(stderr, "%s: %S\n", msg, s);
+	LocalFree(s);
+}
 
 //////////////////////////////////////////////////////////////////////
 // ModuleNetworkingServer public methods
@@ -15,6 +23,38 @@ bool ModuleNetworkingServer::start(int port)
 	// - Bind the socket to a local interface
 	// - Enter in listen mode
 	// - Add the listenSocket to the managed list of sockets using addSocket()
+	listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (listenSocket == INVALID_SOCKET)
+	{
+		printWSErrorAndExit("socket");
+		return false;
+	}
+
+	int enable = 1;
+	int iResult = setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)& enable, sizeof(enable));	if (iResult == SOCKET_ERROR)
+	{
+		printWSErrorAndExit("setsockopt");
+		return false;
+	}
+
+	sockaddr_in localAddr;
+	localAddr.sin_family = AF_INET; // IPv4
+	localAddr.sin_port = htons(port); // Port
+	localAddr.sin_addr.S_un.S_addr = INADDR_ANY; // Any local IP address
+	iResult = bind(listenSocket, (sockaddr*)& localAddr, sizeof(localAddr));
+	if (iResult == SOCKET_ERROR)
+	{
+		printWSErrorAndExit("bind");
+		return false;
+	}
+
+	int simultaneousConnections = 1;
+	iResult = listen(listenSocket, simultaneousConnections);
+	if (iResult == SOCKET_ERROR)
+	{
+		printWSErrorAndExit("listen");
+		return false;
+	}
 
 	state = ServerState::Listening;
 

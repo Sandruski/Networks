@@ -62,6 +62,23 @@ bool ModuleNetworking::preUpdate()
 	byte incomingDataBuffer[incomingDataBufferSize];
 
 	// TODO(jesus): select those sockets that have a read operation available
+	fd_set readSet;
+	FD_ZERO(&readSet);
+
+	for (auto s : sockets)
+	{
+		FD_SET(s, &readSet);
+	}
+
+	timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
+
+	if (select(0, &readSet, nullptr, nullptr, &timeout) == SOCKET_ERROR)
+	{
+		printWSErrorAndExit("select");
+		return false;
+	}
 
 	// TODO(jesus): for those sockets selected, check wheter or not they are
 	// a listen socket or a standard socket and perform the corresponding
@@ -72,6 +89,30 @@ bool ModuleNetworking::preUpdate()
 	// connected socket to the managed list of sockets.
 	// On recv() success, communicate the incoming data received to the
 	// subclass (use the callback onSocketReceivedData()).
+	for (auto s : sockets)
+	{
+		if (FD_ISSET(s, &readSet))
+		{
+			if (isListenSocket(s))
+			{
+				sockaddr_in remoteAddr;
+				int remoteAddrSize = sizeof(remoteAddr);
+				SOCKET connectedSocket = accept(s, (sockaddr*)& remoteAddr, &remoteAddrSize);
+				if (connectedSocket == INVALID_SOCKET)
+				{
+					printWSErrorAndExit("accept");
+					return false;
+				}
+
+				onSocketConnected(connectedSocket, remoteAddr);
+			}
+			else
+			{
+
+			}
+		}
+	}
+
 
 	// TODO(jesus): handle disconnections. Remember that a socket has been
 	// disconnected from its remote end either when recv() returned 0,
