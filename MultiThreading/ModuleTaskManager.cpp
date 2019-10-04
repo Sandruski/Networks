@@ -50,12 +50,11 @@ bool ModuleTaskManager::init()
 bool ModuleTaskManager::update()
 {
 	// TODO 4: Dispatch all finished tasks to their owner module (use Module::onTaskFinished() callback)
+	std::unique_lock<std::mutex> lock(mtx);
 	while (!finishedTasks.empty())
 	{
 		Task* task = finishedTasks.front();
 		task->owner->onTaskFinished(task);
-
-		std::unique_lock<std::mutex> lock(mtx);
 		finishedTasks.pop();
 	}
 
@@ -82,11 +81,10 @@ bool ModuleTaskManager::cleanUp()
 
 void ModuleTaskManager::scheduleTask(Task *task, Module *owner)
 {
-	task->owner = owner;
-
 	// TODO 2: Insert the task into scheduledTasks so it is executed by some thread
 	{
 		std::unique_lock<std::mutex> lock(mtx);
+		task->owner = owner;
 		scheduledTasks.push(task);
 	}
 
