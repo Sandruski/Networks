@@ -76,7 +76,7 @@ bool ModuleNetworking::preUpdate()
 
 	if (select(0, &readSet, nullptr, nullptr, &timeout) == SOCKET_ERROR)
 	{
-		printWSErrorAndExit("select");
+		reportError("select");
 		return false;
 	}
 
@@ -100,7 +100,7 @@ bool ModuleNetworking::preUpdate()
 				SOCKET connectedSocket = accept(s, (sockaddr*)& remoteAddr, &remoteAddrSize);
 				if (connectedSocket == INVALID_SOCKET)
 				{
-					printWSErrorAndExit("accept");
+					reportError("accept");
 					return false;
 				}
 

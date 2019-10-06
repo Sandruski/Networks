@@ -1,16 +1,5 @@
 #include "ModuleNetworkingClient.h"
 
-void printWSErrorAndExit(const char* msg)
-{
-	wchar_t* s = NULL;
-	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, WSAGetLastError(),
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPWSTR)& s, 0, NULL);
-	fprintf(stderr, "%s: %S\n", msg, s);
-	LocalFree(s);
-}
-
 bool  ModuleNetworkingClient::start(const char* serverAddressStr, int serverPort, const char *pplayerName)
 {
 	playerName = pplayerName;
@@ -23,7 +12,7 @@ bool  ModuleNetworkingClient::start(const char* serverAddressStr, int serverPort
 	s = socket(AF_INET, SOCK_STREAM, 0);
 	if (s == INVALID_SOCKET)
 	{
-		printWSErrorAndExit("socket");
+		reportError("socket");
 		return false;
 	}
 
@@ -36,7 +25,7 @@ bool  ModuleNetworkingClient::start(const char* serverAddressStr, int serverPort
 	int iResult = connect(s, (sockaddr*)& toAddr, sizeof(toAddr));
 	if (iResult == SOCKET_ERROR)
 	{
-		printWSErrorAndExit("connect");
+		reportError("connect");
 		return false;
 	}
 
@@ -60,7 +49,7 @@ bool ModuleNetworkingClient::update()
 		// TODO(jesus): Send the player name to the server
 		if (send(s, playerName.data(), playerName.size(), 0) == SOCKET_ERROR)
 		{
-			printWSErrorAndExit("send");
+			reportError("send");
 			return false;
 		}
 
