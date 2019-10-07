@@ -19,27 +19,24 @@ bool ModuleNetworkingServer::start(int port)
 		return false;
 	}
 
-	int enable = 1;
-	int iResult = setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)& enable, sizeof(enable));	if (iResult == SOCKET_ERROR)
+	int enable = 1;	if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&enable, sizeof(enable)) == SOCKET_ERROR)
 	{
 		reportError("setsockopt");
 		return false;
 	}
 
 	sockaddr_in localAddr;
-	localAddr.sin_family = AF_INET; // IPv4
-	localAddr.sin_port = htons(port); // Port
-	localAddr.sin_addr.S_un.S_addr = INADDR_ANY; // Any local IP address
-	iResult = bind(listenSocket, (sockaddr*)& localAddr, sizeof(localAddr));
-	if (iResult == SOCKET_ERROR)
+	localAddr.sin_family = AF_INET;
+	localAddr.sin_port = htons(port);
+	localAddr.sin_addr.S_un.S_addr = INADDR_ANY;
+	if (bind(listenSocket, (sockaddr*)&localAddr, sizeof(localAddr)) == SOCKET_ERROR)
 	{
 		reportError("bind");
 		return false;
 	}
 
-	int simultaneousConnections = 1;
-	iResult = listen(listenSocket, simultaneousConnections);
-	if (iResult == SOCKET_ERROR)
+	int simultaneousConnections = 2;
+	if (listen(listenSocket, simultaneousConnections) == SOCKET_ERROR)
 	{
 		reportError("listen");
 		return false;

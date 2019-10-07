@@ -1,6 +1,8 @@
 #include "Networks.h"
 #include "ModuleNetworking.h"
 
+#include <list>
+
 
 static bool isWinSockInitialized = false;
 
@@ -89,15 +91,34 @@ bool ModuleNetworking::preUpdate()
 	// connected socket to the managed list of sockets.
 	// On recv() success, communicate the incoming data received to the
 	// subclass (use the callback onSocketReceivedData()).
+	std::list<SOCKET> disconnectedSockets;
+
 	for (auto s : sockets)
 	{
 		if (FD_ISSET(s, &readSet))
 		{
 			if (isListenSocket(s))
 			{
+				int result = recv(s, reinterpret_cast<char*>(incomingDataBuffer), incomingDataBufferSize, 0);
+				if (result == SOCKET_ERROR || result == ECONNRESET)
+				{
+					reportError("recv");
+					return false;
+				}
+				else if (result == 0)
+				{
+					disconnectedSockets.push_back(s);
+				}
+				else
+				{
+					onSocketReceivedData(s, incomingDataBuffer);
+				}
+			}
+			else
+			{
 				sockaddr_in remoteAddr;
 				int remoteAddrSize = sizeof(remoteAddr);
-				SOCKET connectedSocket = accept(s, (sockaddr*)& remoteAddr, &remoteAddrSize);
+				SOCKET connectedSocket = accept(s, (sockaddr*)&remoteAddr, &remoteAddrSize);
 				if (connectedSocket == INVALID_SOCKET)
 				{
 					reportError("accept");
@@ -106,22 +127,31 @@ bool ModuleNetworking::preUpdate()
 
 				onSocketConnected(connectedSocket, remoteAddr);
 			}
-			else
-			{
-
-			}
+		}
+		else
+		{
+			disconnectedSockets.push_back(s);
 		}
 	}
-
 
 	// TODO(jesus): handle disconnections. Remember that a socket has been
 	// disconnected from its remote end either when recv() returned 0,
 	// or when it generated some errors such as ECONNRESET.
 	// Communicate detected disconnections to the subclass using the callback
 	// onSocketDisconnected().
+	for (const auto& s : disconnectedSockets)
+	{
+		onSocketDisconnected(s);
+	}
 
 	// TODO(jesus): Finally, remove all disconnected sockets from the list
 	// of managed sockets.
+	for (const auto& s : disconnectedSockets)
+	{
+		sockets.erase(std::find(sockets.begin(), sockets.end(), s));
+	}
+
+	disconnectedSockets.clear();
 
 	return true;
 }

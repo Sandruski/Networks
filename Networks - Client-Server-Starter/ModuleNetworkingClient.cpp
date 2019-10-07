@@ -16,14 +16,12 @@ bool  ModuleNetworkingClient::start(const char* serverAddressStr, int serverPort
 		return false;
 	}
 
-	sockaddr_in toAddr;
-	toAddr.sin_family = AF_INET;
-	toAddr.sin_port = htons(serverPort);
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_port = htons(serverPort);
 	const char* toAddrStr = serverAddressStr;
-	inet_pton(AF_INET, toAddrStr, &toAddr.sin_addr);
+	inet_pton(AF_INET, toAddrStr, &serverAddress.sin_addr);
 
-	int iResult = connect(s, (sockaddr*)& toAddr, sizeof(toAddr));
-	if (iResult == SOCKET_ERROR)
+	if (connect(s, (sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
 	{
 		reportError("connect");
 		return false;
