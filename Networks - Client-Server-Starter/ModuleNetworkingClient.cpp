@@ -42,13 +42,16 @@ bool ModuleNetworkingClient::update()
 {
     if (state == ClientState::Start) {
 
-        // TODO(jesus): Send the player name to the server
-        if (send(s, playerName.data(), playerName.size() + 1, 0) == SOCKET_ERROR) {
-            reportError("send");
-            return false;
-        }
+        OutputMemoryStream packet;
+        packet << ClientMessage::Hello;
+        packet << playerName;
 
-        state = ClientState::Logging;
+        if (sendPacket(packet, s)) {
+            state = ClientState::Logging;
+        } else {
+            disconnect();
+            state = ClientState::Stopped;
+        }
     }
 
     return true;
@@ -64,7 +67,11 @@ bool ModuleNetworkingClient::gui()
         ImVec2 texSize(400.0f, 400.0f * tex->height / tex->width);
         ImGui::Image(tex->shaderResource, texSize);
 
-        ImGui::Text("%s connected to the server...", playerName.c_str());
+		for (const auto& message : m_messages)
+		{
+			//ImGui::Text("%s connected to the server...", playerName.c_str());
+			ImGui::Text("%s", message.c_str());
+		}
 
         ImGui::End();
     }
@@ -72,9 +79,17 @@ bool ModuleNetworkingClient::gui()
     return true;
 }
 
-void ModuleNetworkingClient::onSocketReceivedData(SOCKET socket, byte* data)
+void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemoryStream& packet)
 {
-    state = ClientState::Stopped;
+	ServerMessage serverMessage;
+	packet >> serverMessage;
+
+	if (serverMessage == ServerMessage::Welcome) {
+		std::string message;
+		packet >> message;
+
+		m_messages.push_back(message);
+	}
 }
 
 void ModuleNetworkingClient::onSocketDisconnected(SOCKET socket)

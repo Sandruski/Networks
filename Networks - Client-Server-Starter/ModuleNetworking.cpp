@@ -31,6 +31,17 @@ void ModuleNetworking::disconnect()
     sockets.clear();
 }
 
+bool ModuleNetworking::sendPacket(const OutputMemoryStream& packet, SOCKET socket)
+{
+    int result = send(socket, packet.GetBufferPtr(), packet.GetSize(), 0);
+    if (result == SOCKET_ERROR) {
+        reportError("send");
+        return false;
+    }
+
+    return true;
+}
+
 bool ModuleNetworking::init()
 {
     if (!isWinSockInitialized) {
@@ -51,10 +62,6 @@ bool ModuleNetworking::preUpdate()
 {
     if (sockets.empty())
         return true;
-
-    // NOTE(jesus): You can use this temporary buffer to store data from recv()
-    const uint32 incomingDataBufferSize = Kilobytes(1);
-    byte incomingDataBuffer[incomingDataBufferSize];
 
     // TODO(jesus): select those sockets that have a read operation available
     fd_set readSet;
@@ -102,14 +109,16 @@ bool ModuleNetworking::preUpdate()
 
             } else {
 
-                int result = recv(s, reinterpret_cast<char*>(incomingDataBuffer), incomingDataBufferSize, 0);
+                InputMemoryStream packet;
+                int result = recv(s, packet.GetBufferPtr(), packet.GetCapacity(), 0);
                 if (result == SOCKET_ERROR) {
                     reportError("recv");
                     disconnectedSockets.push_back(s);
                 } else if (result == 0) {
                     disconnectedSockets.push_back(s);
                 } else {
-                    onSocketReceivedData(s, incomingDataBuffer);
+                    packet.SetSize(result);
+                    onPacketReceived(s, packet);
                 }
             }
         }

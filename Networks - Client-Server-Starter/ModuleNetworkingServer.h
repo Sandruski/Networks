@@ -2,67 +2,55 @@
 
 #include "ModuleNetworking.h"
 
-class ModuleNetworkingServer : public ModuleNetworking
-{
+class ModuleNetworkingServer : public ModuleNetworking {
 public:
+    //////////////////////////////////////////////////////////////////////
+    // ModuleNetworkingServer public methods
+    //////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////////////////////////////////////////
-	// ModuleNetworkingServer public methods
-	//////////////////////////////////////////////////////////////////////
+    bool start(int port);
 
-	bool start(int port);
-
-	bool isRunning() const;
-
-
+    bool isRunning() const;
 
 private:
+    //////////////////////////////////////////////////////////////////////
+    // Module virtual methods
+    //////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////////////////////////////////////////
-	// Module virtual methods
-	//////////////////////////////////////////////////////////////////////
+    bool update() override;
 
-	bool update() override;
+    bool gui() override;
 
-	bool gui() override;
+    //////////////////////////////////////////////////////////////////////
+    // ModuleNetworking virtual methods
+    //////////////////////////////////////////////////////////////////////
 
+    bool isListenSocket(SOCKET socket) const override;
 
+    void onSocketConnected(SOCKET socket, const sockaddr_in& socketAddress) override;
 
-	//////////////////////////////////////////////////////////////////////
-	// ModuleNetworking virtual methods
-	//////////////////////////////////////////////////////////////////////
+    void onPacketReceived(SOCKET socket, const InputMemoryStream& packet) override;
 
-	bool isListenSocket(SOCKET socket) const override;
+    void onSocketDisconnected(SOCKET socket) override;
 
-	void onSocketConnected(SOCKET socket, const sockaddr_in &socketAddress) override;
+    //////////////////////////////////////////////////////////////////////
+    // State
+    //////////////////////////////////////////////////////////////////////
 
-	void onSocketReceivedData(SOCKET socket, byte * data) override;
+    enum class ServerState {
+        Stopped,
+        Listening
+    };
 
-	void onSocketDisconnected(SOCKET socket) override;
+    ServerState state = ServerState::Stopped;
 
+    SOCKET listenSocket;
 
+    struct ConnectedSocket {
+        sockaddr_in address;
+        SOCKET socket;
+        std::string playerName;
+    };
 
-	//////////////////////////////////////////////////////////////////////
-	// State
-	//////////////////////////////////////////////////////////////////////
-
-	enum class ServerState
-	{
-		Stopped,
-		Listening
-	};
-
-	ServerState state = ServerState::Stopped;
-
-	SOCKET listenSocket;
-
-	struct ConnectedSocket
-	{
-		sockaddr_in address;
-		SOCKET socket;
-		std::string playerName;
-	};
-
-	std::vector<ConnectedSocket> connectedSockets;
+    std::vector<ConnectedSocket> connectedSockets;
 };
-
