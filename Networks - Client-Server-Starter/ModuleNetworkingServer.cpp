@@ -118,18 +118,34 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
         packet >> playerName;
 
         for (auto& connectedSocket : connectedSockets) {
+
+			OutputMemoryStream packet;
+
             if (connectedSocket.socket == socket) {
                 connectedSocket.playerName = playerName;
            
-				OutputMemoryStream packet;
 				packet << ServerMessage::Welcome;
-				packet << "Welcome";
+				packet << "********************\nWELCOME TO THE CHAT\n********************";
+				packet << 1.0f;
+				packet << 0.0f;
+				packet << 0.0f;
+				packet << 1.0f;
+			}
+			else
+			{
+				std::string message = "********** " + playerName + " joined **********";
+				packet << ServerMessage::ClientConnected;
+				packet << message;
+				packet << 0.0f;
+				packet << 1.0f;
+				packet << 0.0f;
+				packet << 1.0f;
+			}
 
-				if (!sendPacket(packet, connectedSocket.socket))
-				{
-					disconnect();
-					state = ServerState::Stopped;
-				}
+			if (!sendPacket(packet, connectedSocket.socket))
+			{
+				disconnect();
+				state = ServerState::Stopped;
 			}
         }
     }
@@ -137,12 +153,33 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 
 void ModuleNetworkingServer::onSocketDisconnected(SOCKET socket)
 {
-    // Remove the connected socket from the list
-    for (auto it = connectedSockets.begin(); it != connectedSockets.end(); ++it) {
-        auto& connectedSocket = *it;
-        if (connectedSocket.socket == socket) {
-            connectedSockets.erase(it);
-            break;
-        }
-    }
+	// Remove the connected socket from the list
+	for (auto it = connectedSockets.begin(); it != connectedSockets.end(); ++it) {
+
+		if ((*it).socket == socket) {
+
+			std::string playerName = (*it).playerName;
+			connectedSockets.erase(it);
+
+			for (const auto& connectedSocket : connectedSockets) {
+
+				OutputMemoryStream packet;
+				std::string message = "********** " + playerName + " left **********";
+				packet << ServerMessage::ClientDisconnected;
+				packet << message;
+				packet << 0.2f;
+				packet << 0.2f;
+				packet << 0.2f;
+				packet << 1.0f;
+
+				if (!sendPacket(packet, connectedSocket.socket))
+				{
+					disconnect();
+					state = ServerState::Stopped;
+				}
+			}
+
+			break;
+		}
+	}
 }

@@ -67,10 +67,19 @@ bool ModuleNetworkingClient::gui()
         ImVec2 texSize(400.0f, 400.0f * tex->height / tex->width);
         ImGui::Image(tex->shaderResource, texSize);
 
+		ImGui::Text("Hello %s! Welcome to the chat :)", playerName.c_str());
+		if (ImGui::Button("Logout"))
+		{
+			m_messages.clear();
+
+			disconnect();
+			state = ClientState::Stopped;
+		}
+		ImGui::Separator();
+
 		for (const auto& message : m_messages)
 		{
-			//ImGui::Text("%s connected to the server...", playerName.c_str());
-			ImGui::Text("%s", message.c_str());
+			ImGui::TextColored(message.m_color, "%s", message.m_message.c_str());
 		}
 
         ImGui::End();
@@ -84,11 +93,29 @@ void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemorySt
 	ServerMessage serverMessage;
 	packet >> serverMessage;
 
-	if (serverMessage == ServerMessage::Welcome) {
+	switch (serverMessage)
+	{
+	case ServerMessage::Welcome:
+	case ServerMessage::ClientConnected:
+	case ServerMessage::ClientDisconnected:
+	{
 		std::string message;
+		ImVec4 color;
 		packet >> message;
+		packet >> color.x;
+		packet >> color.y;
+		packet >> color.z;
+		packet >> color.w;
 
-		m_messages.push_back(message);
+		m_messages.push_back(Message(message, color));
+
+		break;
+	}
+
+	default:
+	{
+		break;
+	}
 	}
 }
 
