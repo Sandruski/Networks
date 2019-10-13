@@ -82,6 +82,22 @@ bool ModuleNetworkingClient::gui()
 			ImGui::TextColored(message.m_color, "%s", message.m_message.c_str());
 		}
 
+		static char text[128] = "";
+		if (ImGui::InputText("Line", text, IM_ARRAYSIZE(text), ImGuiInputTextFlags_EnterReturnsTrue))
+		{
+			OutputMemoryStream packet;
+			packet << ClientMessage::Chat;
+			packet << text;
+
+			if (!sendPacket(packet, s)) 
+			{
+				disconnect();
+				state = ClientState::Stopped;
+			}
+
+			strcpy_s(text, 128, "");
+		}
+
         ImGui::End();
     }
 
@@ -98,6 +114,7 @@ void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemorySt
 	case ServerMessage::Welcome:
 	case ServerMessage::ClientConnected:
 	case ServerMessage::ClientDisconnected:
+	case ServerMessage::Chat:
 	{
 		std::string message;
 		ImVec4 color;

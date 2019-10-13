@@ -113,17 +113,20 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
     ClientMessage clientMessage;
     packet >> clientMessage;
 
-    if (clientMessage == ClientMessage::Hello) {
-        std::string playerName;
-        packet >> playerName;
+    switch (clientMessage)
+	{
+	case ClientMessage::Hello:
+	{
+		std::string playerName;
+		packet >> playerName;
 
-        for (auto& connectedSocket : connectedSockets) {
+		for (auto& connectedSocket : connectedSockets) {
 
 			OutputMemoryStream packet;
 
-            if (connectedSocket.socket == socket) {
-                connectedSocket.playerName = playerName;
-           
+			if (connectedSocket.socket == socket) {
+				connectedSocket.playerName = playerName;
+
 				packet << ServerMessage::Welcome;
 				packet << "********************\nWELCOME TO THE CHAT\n********************";
 				packet << 1.0f;
@@ -146,8 +149,45 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 			{
 				disconnect();
 				state = ServerState::Stopped;
+
+				break;
 			}
-        }
+		}
+
+		break;
+	}
+
+	case ClientMessage::Chat:
+	{
+		std::string message;
+		packet >> message;
+
+		for (auto& connectedSocket : connectedSockets) {
+
+			OutputMemoryStream packet;
+			packet << ServerMessage::Chat;
+			packet << connectedSocket.playerName + ": " + message;
+			packet << 1.0f;
+			packet << 1.0f;
+			packet << 1.0f;
+			packet << 1.0f;
+
+			if (!sendPacket(packet, connectedSocket.socket))
+			{
+				disconnect();
+				state = ServerState::Stopped;
+
+				break;
+			}
+		}
+
+		break;
+	}
+
+	default:
+	{
+		break;
+	}
     }
 }
 
