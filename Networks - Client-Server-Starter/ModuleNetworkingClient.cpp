@@ -27,6 +27,8 @@ bool ModuleNetworkingClient::start(const char* serverAddressStr, int serverPort,
 
     addSocket(s);
 
+	m_messages.clear();
+
     // If everything was ok... change the state
     state = ClientState::Start;
 
@@ -70,32 +72,33 @@ bool ModuleNetworkingClient::gui()
 		ImGui::Text("Hello %s! Welcome to the chat :)", playerName.c_str());
 		if (ImGui::Button("Logout"))
 		{
-			m_messages.clear();
-
 			disconnect();
 			state = ClientState::Stopped;
 		}
-		ImGui::Separator();
 
+		ImGui::Spacing();
+		
+		ImGui::BeginChild("Scroll", ImVec2(400, 450), true);
 		for (const auto& message : m_messages)
 		{
 			ImGui::TextColored(message.m_color, "%s", message.m_message.c_str());
 		}
+		ImGui::EndChild();
 
-		static char text[128] = "";
+		static char text[256] = "";
 		if (ImGui::InputText("Line", text, IM_ARRAYSIZE(text), ImGuiInputTextFlags_EnterReturnsTrue))
 		{
 			OutputMemoryStream packet;
 			packet << ClientMessage::Chat;
 			packet << text;
 
-			if (!sendPacket(packet, s)) 
+			if (!sendPacket(packet, s))
 			{
 				disconnect();
 				state = ClientState::Stopped;
 			}
 
-			strcpy_s(text, 128, "");
+			strcpy_s(text, 256, "");
 		}
 
         ImGui::End();
@@ -115,6 +118,9 @@ void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemorySt
 	case ServerMessage::ClientConnected:
 	case ServerMessage::ClientDisconnected:
 	case ServerMessage::Chat:
+	case ServerMessage::Help:
+	case ServerMessage::List:
+	case ServerMessage::Whisper:
 	{
 		std::string message;
 		ImVec4 color;
@@ -125,6 +131,21 @@ void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemorySt
 		packet >> color.w;
 
 		m_messages.push_back(Message(message, color));
+
+		break;
+	}
+
+	case ServerMessage::Disconnect:
+	{
+		disconnect();
+		state = ClientState::Stopped;
+
+		break;
+	}
+
+	case ServerMessage::ChangeName:
+	{
+		packet >> playerName;
 
 		break;
 	}

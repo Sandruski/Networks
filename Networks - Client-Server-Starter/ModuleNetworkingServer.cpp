@@ -125,10 +125,11 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 			OutputMemoryStream packet;
 
 			if (connectedSocket.socket == socket) {
+
 				connectedSocket.playerName = playerName;
 
 				packet << ServerMessage::Welcome;
-				packet << "********************\nWELCOME TO THE CHAT\n********************";
+				packet << "********************\nWELCOME TO THE CHAT\n********************\nType /help to see available commands";
 				packet << 1.0f;
 				packet << 0.0f;
 				packet << 0.0f;
@@ -162,22 +163,175 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 		std::string message;
 		packet >> message;
 
-		for (auto& connectedSocket : connectedSockets) {
-
+		if (message == "/help")
+		{
 			OutputMemoryStream packet;
-			packet << ServerMessage::Chat;
-			packet << connectedSocket.playerName + ": " + message;
+			packet << ServerMessage::Help;
+			packet << "***** Commands list *****\n/help\n/kick [username]\n/list\n/whisper [username] [message]\n/change_name [username]";
 			packet << 1.0f;
 			packet << 1.0f;
-			packet << 1.0f;
+			packet << 0.0f;
 			packet << 1.0f;
 
-			if (!sendPacket(packet, connectedSocket.socket))
+			if (!sendPacket(packet, socket))
 			{
 				disconnect();
 				state = ServerState::Stopped;
+			}
+		}
+		else if (message == "/list")
+		{
+			std::string list = "***** Users list *****";
 
+			for (const auto& connectedSocket : connectedSockets) 
+			{
+				list += "\n- " + connectedSocket.playerName;
+			}
+
+			OutputMemoryStream packet;
+			packet << ServerMessage::List;
+			packet << list;
+			packet << 1.0f;
+			packet << 1.0f;
+			packet << 0.0f;
+			packet << 1.0f;
+
+			if (!sendPacket(packet, socket))
+			{
+				disconnect();
+				state = ServerState::Stopped;
+			}
+		}
+		else if (message.find("/kick") != std::string::npos)
+		{
+			std::string command = "/kick ";
+			if (message.length() <= command.length())
+			{
 				break;
+			}
+			std::string playerName = message.substr(command.length());
+
+			for (const auto& connectedSocket : connectedSockets) {
+
+				if (connectedSocket.playerName == playerName) {
+
+					OutputMemoryStream packet;
+					packet << ServerMessage::Disconnect;
+
+					if (!sendPacket(packet, connectedSocket.socket))
+					{
+						disconnect();
+						state = ServerState::Stopped;
+					}
+
+					break;
+				}
+			}
+		}
+		else if (message.find("/whisper") != std::string::npos)
+		{
+			std::string command = "/whisper ";
+			if (message.length() <= command.length())
+			{
+				break;
+			}
+			std::string args = message.substr(command.length());
+
+			std::string spacing = " ";
+			std::size_t spacingIndex = args.find(spacing);
+			std::string toPlayerName = args.substr(0, spacingIndex);
+			std::string sentence = args.substr(spacingIndex + spacing.length());
+
+			ConnectedSocket fromConnectedSocket;
+			for (const auto& connectedSocket : connectedSockets) 
+			{
+				if (connectedSocket.socket == socket)
+				{
+					fromConnectedSocket = connectedSocket;
+					break;
+				}
+			}
+
+			for (const auto& connectedSocket : connectedSockets) 
+			{
+				if (connectedSocket.playerName == toPlayerName)
+				{
+					OutputMemoryStream packet;
+					packet << ServerMessage::Whisper;
+					packet << fromConnectedSocket.playerName + " whispers to " + toPlayerName + ": " + sentence;
+					packet << 1.0f;
+					packet << 1.0f;
+					packet << 1.0f;
+					packet << 1.0f;
+
+					if (!sendPacket(packet, connectedSocket.socket)
+						|| !sendPacket(packet, fromConnectedSocket.socket))
+					{
+						disconnect();
+						state = ServerState::Stopped;
+					}
+
+					break;
+				}
+			}
+		}
+		else if (message.find("/change_name") != std::string::npos)
+		{
+			std::string command = "/change_name ";
+			if (message.length() <= command.length())
+			{
+				break;
+			}
+			std::string playerName = message.substr(command.length());
+
+			for (auto& connectedSocket : connectedSockets)
+			{
+				if (connectedSocket.socket == socket)
+				{
+					connectedSocket.playerName = playerName;
+
+					OutputMemoryStream packet;
+					packet << ServerMessage::ChangeName;
+					packet << playerName;
+
+					if (!sendPacket(packet, connectedSocket.socket))
+					{
+						disconnect();
+						state = ServerState::Stopped;
+					}
+
+					break;
+				}
+			}
+		}
+		else
+		{
+			std::string playerName;
+			for (const auto& connectedSocket : connectedSockets) {
+
+				if (connectedSocket.socket == socket) {
+					playerName = connectedSocket.playerName;
+					break;
+				}
+			}
+
+			for (const auto& connectedSocket : connectedSockets) {
+
+				OutputMemoryStream packet;
+				packet << ServerMessage::Chat;
+				packet << playerName + ": " + message;
+				packet << 1.0f;
+				packet << 1.0f;
+				packet << 1.0f;
+				packet << 1.0f;
+
+				if (!sendPacket(packet, connectedSocket.socket))
+				{
+					disconnect();
+					state = ServerState::Stopped;
+
+					break;
+				}
 			}
 		}
 

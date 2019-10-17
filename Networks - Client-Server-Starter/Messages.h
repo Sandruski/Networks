@@ -12,8 +12,14 @@ enum class ClientMessage
 enum class ServerMessage
 {
 	Welcome,
+	NonWelcome,
 	ClientConnected,
 	ClientDisconnected,
-	Chat
+	Chat,
+	Help,
+	List,
+	Disconnect,
+	Whisper,
+	ChangeName
 };
 
