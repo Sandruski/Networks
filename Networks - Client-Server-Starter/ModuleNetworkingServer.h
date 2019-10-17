@@ -50,6 +50,7 @@ private:
         sockaddr_in address;
         SOCKET socket;
         std::string playerName;
+		ImVec4 m_playerColor;
     };
 
     std::vector<ConnectedSocket> connectedSockets;

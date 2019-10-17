@@ -61,6 +61,7 @@ private:
     SOCKET s = INVALID_SOCKET;
 
     std::string playerName;
+	ImVec4 m_playerColor;
 
 	std::list<Message> m_messages;
 };

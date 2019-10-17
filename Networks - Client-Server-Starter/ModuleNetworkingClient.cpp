@@ -115,9 +115,28 @@ void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemorySt
 	switch (serverMessage)
 	{
 	case ServerMessage::Welcome:
+	{
+		std::string message;
+		ImVec4 color;
+		packet >> message;
+		packet >> color.x;
+		packet >> color.y;
+		packet >> color.z;
+		packet >> color.w;
+
+		packet >> m_playerColor.x;
+		packet >> m_playerColor.y;
+		packet >> m_playerColor.z;
+		packet >> m_playerColor.w;
+
+		m_messages.push_back(Message(message, color));
+
+		break;
+	}
+
+	case ServerMessage::Chat:
 	case ServerMessage::ClientConnected:
 	case ServerMessage::ClientDisconnected:
-	case ServerMessage::Chat:
 	case ServerMessage::Help:
 	case ServerMessage::List:
 	case ServerMessage::Whisper:

@@ -131,9 +131,19 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 				packet << ServerMessage::Welcome;
 				packet << "********************\nWELCOME TO THE CHAT\n********************\nType /help to see available commands";
 				packet << 1.0f;
-				packet << 0.0f;
+				packet << 1.0f;
 				packet << 0.0f;
 				packet << 1.0f;
+
+				connectedSocket.m_playerColor.x = (double)rand() / (RAND_MAX);
+				connectedSocket.m_playerColor.y = (double)rand() / (RAND_MAX);
+				connectedSocket.m_playerColor.z = (double)rand() / (RAND_MAX);
+				connectedSocket.m_playerColor.w = 1.0f;
+
+				packet << connectedSocket.m_playerColor.x;
+				packet << connectedSocket.m_playerColor.y;
+				packet << connectedSocket.m_playerColor.z;
+				packet << connectedSocket.m_playerColor.w;
 			}
 			else
 			{
@@ -259,10 +269,6 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 					OutputMemoryStream packet;
 					packet << ServerMessage::Whisper;
 					packet << fromConnectedSocket.playerName + " whispers to " + toPlayerName + ": " + sentence;
-					packet << 1.0f;
-					packet << 1.0f;
-					packet << 1.0f;
-					packet << 1.0f;
 
 					if (!sendPacket(packet, connectedSocket.socket)
 						|| !sendPacket(packet, fromConnectedSocket.socket))
@@ -306,11 +312,11 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 		}
 		else
 		{
-			std::string playerName;
+			ConnectedSocket fromConnectedSocket;
 			for (const auto& connectedSocket : connectedSockets) {
 
 				if (connectedSocket.socket == socket) {
-					playerName = connectedSocket.playerName;
+					fromConnectedSocket = connectedSocket;
 					break;
 				}
 			}
@@ -319,11 +325,11 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 
 				OutputMemoryStream packet;
 				packet << ServerMessage::Chat;
-				packet << playerName + ": " + message;
-				packet << 1.0f;
-				packet << 1.0f;
-				packet << 1.0f;
-				packet << 1.0f;
+				packet << fromConnectedSocket.playerName + ": " + message;
+				packet << fromConnectedSocket.m_playerColor.x;
+				packet << fromConnectedSocket.m_playerColor.y;
+				packet << fromConnectedSocket.m_playerColor.z;
+				packet << fromConnectedSocket.m_playerColor.w;
 
 				if (!sendPacket(packet, connectedSocket.socket))
 				{
@@ -361,9 +367,9 @@ void ModuleNetworkingServer::onSocketDisconnected(SOCKET socket)
 				std::string message = "********** " + playerName + " left **********";
 				packet << ServerMessage::ClientDisconnected;
 				packet << message;
-				packet << 0.2f;
-				packet << 0.2f;
-				packet << 0.2f;
+				packet << 0.5f;
+				packet << 0.5f;
+				packet << 0.5f;
 				packet << 1.0f;
 
 				if (!sendPacket(packet, connectedSocket.socket))
