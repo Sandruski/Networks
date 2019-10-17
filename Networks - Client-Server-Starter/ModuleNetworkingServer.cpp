@@ -120,6 +120,24 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 		std::string playerName;
 		packet >> playerName;
 
+		for (const auto& connectedSocket : connectedSockets)
+		{
+			if (connectedSocket.playerName == playerName)
+			{
+				OutputMemoryStream packet;
+				packet << ServerMessage::NonWelcome;
+				packet << playerName;
+
+				if (!sendPacket(packet, socket))
+				{
+					disconnect();
+					state = ServerState::Stopped;
+				}
+
+				return;
+			}
+		}
+
 		for (auto& connectedSocket : connectedSockets) {
 
 			OutputMemoryStream packet;
@@ -289,6 +307,24 @@ void ModuleNetworkingServer::onPacketReceived(SOCKET socket, const InputMemorySt
 				break;
 			}
 			std::string playerName = message.substr(command.length());
+
+			for (const auto& connectedSocket : connectedSockets)
+			{
+				if (connectedSocket.playerName == playerName)
+				{
+					OutputMemoryStream packet;
+					packet << ServerMessage::NonWelcome;
+					packet << playerName;
+
+					if (!sendPacket(packet, socket))
+					{
+						disconnect();
+						state = ServerState::Stopped;
+					}
+
+					return;
+				}
+			}
 
 			for (auto& connectedSocket : connectedSockets)
 			{

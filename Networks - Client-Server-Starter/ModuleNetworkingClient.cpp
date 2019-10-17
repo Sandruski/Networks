@@ -154,6 +154,14 @@ void ModuleNetworkingClient::onPacketReceived(SOCKET socket, const InputMemorySt
 		break;
 	}
 
+	case ServerMessage::NonWelcome:
+	{
+		std::string newPlayerName;
+		packet >> newPlayerName;
+
+		LOG("The player name %s already exists", newPlayerName.c_str());
+	}
+
 	case ServerMessage::Disconnect:
 	{
 		disconnect();
